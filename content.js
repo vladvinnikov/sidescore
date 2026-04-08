@@ -10,7 +10,7 @@
     column: '[data-testid="platform-board-kit.ui.column.draggable-column.styled-wrapper"]',
     columnName: '[data-testid="platform-board-kit.common.ui.column-header.editable-title.column-title.column-name"]',
     columnHeader: '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]',
-    estimate: '[data-testid="software-board.common.fields.estimate-field.static.estimate-wrapper"]'
+    estimate: '[data-testid="software-board.common.fields.estimate-field.static.estimate-wrapper"], [data-testid="issue-field-story-point-estimate-readview-card.ui.story-point-estimate.badge"]'
   };
 
   function debounce(fn, delay) {
