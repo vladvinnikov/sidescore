@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Jira Story Points Counter",
+  "name": "SideScore",
   "version": "1.0.0",
   "description": "Displays total story points per column on classic Jira boards",
   "content_scripts": [
