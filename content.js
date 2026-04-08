@@ -82,16 +82,20 @@
   }
 
   function init(pool) {
+    var observer;
+
     function update() {
+      if (observer) observer.disconnect();
       var totals = scrapeStoryPoints();
       injectBadges(totals);
+      if (observer) observer.observe(pool, { childList: true, subtree: true });
     }
 
     // Initial scan
     update();
 
     // Watch for DOM changes (card moves, additions, removals)
-    var observer = new MutationObserver(debounce(update, DEBOUNCE_MS));
+    observer = new MutationObserver(debounce(update, DEBOUNCE_MS));
     observer.observe(pool, { childList: true, subtree: true });
   }
 
