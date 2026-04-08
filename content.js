@@ -42,6 +42,35 @@
     return columnTotals;
   }
 
+  function injectBadges(columnTotals) {
+    // Remove existing badges
+    document.querySelectorAll("[data-sp-badge]").forEach(function (el) {
+      el.remove();
+    });
+
+    var headers = document.querySelectorAll("#ghx-column-headers .ghx-column");
+
+    headers.forEach(function (header) {
+      var columnId = header.getAttribute("data-id") || header.getAttribute("data-column-id");
+      if (!columnId) return;
+
+      var total = columnTotals[columnId] || 0;
+
+      var badge = document.createElement("span");
+      badge.className = "sp-badge";
+      badge.setAttribute("data-sp-badge", "true");
+      badge.textContent = total + " SP";
+
+      // Insert into the header — find the heading element or append to header
+      var heading = header.querySelector("h2") || header.querySelector(".ghx-column-title");
+      if (heading) {
+        heading.appendChild(badge);
+      } else {
+        header.appendChild(badge);
+      }
+    });
+  }
+
   function init(pool) {
     // Will be implemented in Task 4
     console.log("[SP Counter] Board detected, initializing...");
