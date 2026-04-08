@@ -71,9 +71,28 @@
     });
   }
 
+  var DEBOUNCE_MS = 200;
+
+  function debounce(fn, delay) {
+    var timer = null;
+    return function () {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(fn, delay);
+    };
+  }
+
   function init(pool) {
-    // Will be implemented in Task 4
-    console.log("[SP Counter] Board detected, initializing...");
+    function update() {
+      var totals = scrapeStoryPoints();
+      injectBadges(totals);
+    }
+
+    // Initial scan
+    update();
+
+    // Watch for DOM changes (card moves, additions, removals)
+    var observer = new MutationObserver(debounce(update, DEBOUNCE_MS));
+    observer.observe(pool, { childList: true, subtree: true });
   }
 
   function waitForBoard() {
