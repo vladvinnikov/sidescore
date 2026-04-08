@@ -1,77 +1,17 @@
 (function () {
   "use strict";
 
-  const MAX_POLL_ATTEMPTS = 30;
-  const POLL_INTERVAL_MS = 1000;
-
-  var SP_SELECTORS = [
-    ".aui-badge",
-    '.ghx-extra-field[data-tooltip^="Story Points"]',
-    '.ghx-extra-field[data-tooltip^="Story point estimate"]'
-  ];
-
-  function scrapeStoryPoints() {
-    var columnTotals = {};
-    var cards = document.querySelectorAll("#ghx-pool .ghx-issue");
-
-    cards.forEach(function (card) {
-      var points = null;
-
-      for (var i = 0; i < SP_SELECTORS.length; i++) {
-        var el = card.querySelector(SP_SELECTORS[i]);
-        if (el) {
-          var parsed = parseFloat(el.textContent.trim());
-          if (!isNaN(parsed)) {
-            points = parsed;
-            break;
-          }
-        }
-      }
-
-      if (points === null) return;
-
-      var column = card.closest(".ghx-column");
-      if (!column) return;
-
-      var columnId = column.getAttribute("data-id") || column.getAttribute("data-column-id");
-      if (!columnId) return;
-
-      columnTotals[columnId] = (columnTotals[columnId] || 0) + points;
-    });
-
-    return columnTotals;
-  }
-
-  function injectBadges(columnTotals) {
-    // Remove existing badges
-    document.querySelectorAll("[data-sp-badge]").forEach(function (el) {
-      el.remove();
-    });
-
-    var headers = document.querySelectorAll("#ghx-column-headers .ghx-column");
-
-    headers.forEach(function (header) {
-      var columnId = header.getAttribute("data-id") || header.getAttribute("data-column-id");
-      if (!columnId) return;
-
-      var total = columnTotals[columnId] || 0;
-
-      var badge = document.createElement("span");
-      badge.className = "sp-badge";
-      badge.setAttribute("data-sp-badge", "true");
-      badge.textContent = total + " SP";
-
-      // Insert into the header — find the heading element or append to header
-      var heading = header.querySelector("h2") || header.querySelector(".ghx-column-title");
-      if (heading) {
-        heading.appendChild(badge);
-      } else {
-        header.appendChild(badge);
-      }
-    });
-  }
-
+  var MAX_POLL_ATTEMPTS = 30;
+  var POLL_INTERVAL_MS = 1000;
   var DEBOUNCE_MS = 200;
+
+  var SELECTORS = {
+    board: '[data-testid="software-board.board-area"]',
+    column: '[data-testid="platform-board-kit.ui.column.draggable-column.styled-wrapper"]',
+    columnName: '[data-testid="platform-board-kit.common.ui.column-header.editable-title.column-title.column-name"]',
+    columnHeader: '[data-testid="platform-board-kit.common.ui.column-header.header.column-header-container"]',
+    estimate: '[data-testid="software-board.common.fields.estimate-field.static.estimate-wrapper"]'
+  };
 
   function debounce(fn, delay) {
     var timer = null;
@@ -81,32 +21,60 @@
     };
   }
 
-  function init(pool) {
+  function update() {
+    // Remove existing badges
+    document.querySelectorAll("[data-sp-badge]").forEach(function (el) {
+      el.remove();
+    });
+
+    var columns = document.querySelectorAll(SELECTORS.column);
+
+    columns.forEach(function (col) {
+      // Sum story points in this column
+      var total = 0;
+      col.querySelectorAll(SELECTORS.estimate).forEach(function (el) {
+        var parsed = parseFloat(el.textContent.trim());
+        if (!isNaN(parsed)) total += parsed;
+      });
+
+      // Find the column header to inject badge into
+      var header = col.querySelector(SELECTORS.columnHeader);
+      if (!header) return;
+
+      var badge = document.createElement("span");
+      badge.className = "sp-badge";
+      badge.setAttribute("data-sp-badge", "true");
+      badge.textContent = total + " SP";
+
+      header.appendChild(badge);
+    });
+  }
+
+  function init(board) {
     var observer;
 
-    function update() {
+    function safeUpdate() {
       if (observer) observer.disconnect();
-      var totals = scrapeStoryPoints();
-      injectBadges(totals);
-      if (observer) observer.observe(pool, { childList: true, subtree: true });
+      update();
+      if (observer) observer.observe(board, { childList: true, subtree: true });
     }
 
     // Initial scan
-    update();
+    safeUpdate();
 
     // Watch for DOM changes (card moves, additions, removals)
-    observer = new MutationObserver(debounce(update, DEBOUNCE_MS));
-    observer.observe(pool, { childList: true, subtree: true });
+    observer = new MutationObserver(debounce(safeUpdate, DEBOUNCE_MS));
+    observer.observe(board, { childList: true, subtree: true });
   }
 
   function waitForBoard() {
-    let attempts = 0;
-    const interval = setInterval(function () {
+    var attempts = 0;
+    var interval = setInterval(function () {
       attempts++;
-      const pool = document.getElementById("ghx-pool");
-      if (pool) {
+      var board = document.querySelector(SELECTORS.board);
+      if (board) {
         clearInterval(interval);
-        init(pool);
+        init(board);
       } else if (attempts >= MAX_POLL_ATTEMPTS) {
         clearInterval(interval);
       }
